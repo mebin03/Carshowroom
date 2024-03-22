@@ -1,0 +1,413 @@
+﻿@* @page "/cars"
+@using Volo.Abp.Application.Dtos
+@using Carshowroom.Cars
+@using Carshowroom.Localization
+@using Microsoft.Extensions.Localization
+@using Volo.Abp.AspNetCore.Components.Web
+@inject IStringLocalizer<CarshowroomResource> L
+@inject AbpBlazorMessageLocalizerHelper<CarshowroomResource> LH
+@inherits AbpCrudPageBase<ICarAppService, CarDto, Guid, PagedAndSortedResultRequestDto, CreateUpdateCarDto>
+
+<Card>
+    <CardHeader>
+        <Row Class="justify-content-between">
+            <Column ColumnSize="ColumnSize.IsAuto">
+                <h2>@L["Cars"]</h2>
+            </Column>
+            <Column ColumnSize="ColumnSize.IsAuto">
+                <Button Color="Color.Primary"
+                        Clicked="OpenCreateModalAsync">@L["NewCar"]</Button>
+            </Column>
+        </Row>
+    </CardHeader>
+    <CardBody>
+        <DataGrid TItem="CarDto"
+                  Data="Entities"
+                  ReadData="OnDataGridReadAsync"
+                  CurrentPage="CurrentPage"
+                  TotalItems="TotalCount"
+                  ShowPager="true"
+                  PageSize="PageSize">
+            <DataGridColumns>
+                <DataGridEntityActionsColumn TItem="CarDto" @ref="@EntityActionsColumn">
+                    <DisplayTemplate>
+                        <EntityActions TItem="CarDto" EntityActionsColumn="@EntityActionsColumn">
+                            <EntityAction TItem="CarDto"
+                                          Text="@L["Edit"]"
+                                          Clicked="() => OpenEditModalAsync(context)" />
+                            <EntityAction TItem="CarDto"
+                                          Text="@L["Delete"]"
+                                          Clicked="() => DeleteEntityAsync(context)"
+                                          ConfirmationMessage="()=>GetDeleteConfirmationMessage(context)" />
+                        </EntityActions>
+                    </DisplayTemplate>
+                </DataGridEntityActionsColumn>
+                <DataGridColumn TItem="CarDto"
+                                Field="@nameof(CarDto.CarId)"
+                                Caption="@L["CarId"]"></DataGridColumn>
+                <DataGridColumn TItem="CarDto"
+                                Field="@nameof(CarDto.Brand)"
+                                Caption="@L["Brand"]">
+                    <DisplayTemplate>
+                        @L[$"{context.Brand}"]
+                    </DisplayTemplate>
+                </DataGridColumn>
+                <DataGridColumn TItem="CarDto"
+                                Field="@nameof(CarDto.Model)"
+                                Caption="@L["Model"]"></DataGridColumn>
+                <DataGridColumn TItem="CarDto"
+                                Field="@nameof(CarDto.Price)"
+                                Caption="@L["Price"]">
+                </DataGridColumn>
+                <DataGridColumn TItem="CarDto"
+                                Field="@nameof(CarDto.Year)"
+                                Caption="@L["Year"]"></DataGridColumn>
+            </DataGridColumns>
+        </DataGrid>
+    </CardBody>
+</Card>
+
+<Modal @ref="@CreateModal">
+    <ModalBackdrop />
+    <ModalContent IsCentered="true">
+        <Form>
+            <ModalHeader>
+                <ModalTitle>@L["NewCar"]</ModalTitle>
+                <CloseButton Clicked="CloseCreateModalAsync"/>
+            </ModalHeader>
+            <ModalBody>
+                <Validations @ref="@CreateValidationsRef" Model="@NewEntity" ValidateOnLoad="false">
+                    <Validation MessageLocalizer="@LH.Localize">
+                        <Field>
+                            <FieldLabel>@L["CarId"]</FieldLabel>
+                            <NumericEdit TValue="int" TextEdit @bind-Text="@NewEntity.CarId"/>
+                        </Field>
+                    </Validation>
+                    <Field>
+                        <FieldLabel>@L["Brand"]</FieldLabel>
+                        <Select TValue="Brand" @bind-SelectedValue="@NewEntity.Brand">
+                            @foreach (int brandValue in Enum.GetValues(typeof(Brand)))
+                            {
+                                <SelectItem TValue="Brand" Value="@((Brand) brandValue)">
+                                    @L[$"Enum:Brand.{brandValue}"]
+                                </SelectItem>
+                            }
+                        </Select>
+                    </Field>
+                    <Field>
+                            <FieldLabel>@L["Year"]</FieldLabel>
+                            <NumericEdit TValue="int" TextEdit @bind-Text="@NewEntity.Year"/>
+                               
+                        </Field>
+                    <Field>
+                        <FieldLabel>@L["Model"]</FieldLabel>
+                        <TextEdit @bind-Text="@NewEntity.Model">
+                            <Feedback>
+                                <ValidationError />
+                            </Feedback>
+                        </TextEdit>
+                    </Field>
+                    <Field>
+                        <FieldLabel>@L["Price"]</FieldLabel>
+                        <NumericEdit TValue="double" @bind-Value="NewEntity.Price"/>
+                    </Field>
+                </Validations>
+            </ModalBody>
+            <ModalFooter>
+                <Button Color="Color.Secondary"
+                        Clicked="CloseCreateModalAsync">@L["Cancel"]</Button>
+                <Button Color="Color.Primary"
+                        Type="@ButtonType.Submit"
+                        PreventDefaultOnSubmit="true"
+                        Clicked="CreateEntityAsync">@L["Save"]</Button>
+            </ModalFooter>
+        </Form>
+    </ModalContent>
+</Modal>
+
+<Modal @ref="@EditModal">
+    <ModalBackdrop />
+    <ModalContent IsCentered="true">
+        <Form>
+            <ModalHeader>
+                <ModalTitle>@EditingEntity.CarId</ModalTitle>
+                <CloseButton Clicked="CloseEditModalAsync"/>
+            </ModalHeader>
+            <ModalBody>
+                <Validations @ref="@EditValidationsRef" Model="@NewEntity" ValidateOnLoad="false">
+                    <Validation MessageLocalizer="@LH.Localize">
+                        <Field>
+                            <FieldLabel>@L["CarId"]</FieldLabel>
+                            <NumericEdit TValue="int" @bind-Text="@EditingEntity.CarId">
+                               
+                            </NumericEdit>
+                        </Field>
+                    </Validation>
+                     <Field>
+                        <FieldLabel>@L["Brand"]</FieldLabel>
+                        <Select TValue="Brand" @bind-SelectedValue="@NewEntity.Brand">
+                            @foreach (int brandValue in Enum.GetValues(typeof(Brand)))
+                            {
+                                <SelectItem TValue="Brand" Value="@((Brand) brandValue)">
+                                    @L[$"Enum:Brand.{brandValue}"]
+                                </SelectItem>
+                            }
+                        </Select>
+                    </Field>
+                    <Field>
+                            <FieldLabel>@L["Year"]</FieldLabel>
+                            <NumericEdit TValue="int" TextEdit @bind-Text="@NewEntity.Year"/>
+                                <Feedback>
+                                    <ValidationError/>
+                                </Feedback>
+                        </Field>
+                    <Field>
+                        <FieldLabel>@L["Model"]</FieldLabel>
+                        <TextEdit @bind-Text="@NewEntity.Model">
+                            <Feedback>
+                                <ValidationError />
+                            </Feedback>
+                        </TextEdit>
+                    </Field>
+                    <Field>
+                        <FieldLabel>@L["Price"]</FieldLabel>
+                        <NumericEdit TValue="double" @bind-Value="NewEntity.Price"/>
+                    </Field>
+                </Validations>
+            </ModalBody>
+            <ModalFooter>
+                <Button Color="Color.Secondary"
+                        Clicked="CloseEditModalAsync">@L["Cancel"]</Button>
+                <Button Color="Color.Primary"
+                        Type="@ButtonType.Submit"
+                        PreventDefaultOnSubmit="true"
+                        Clicked="UpdateEntityAsync">@L["Save"]</Button>
+            </ModalFooter>
+        </Form>
+    </ModalContent>
+</Modal>
+  *@
+  @page "/cars"
+@using Carshowroom.Permissions
+@using Volo.Abp
+@using Volo.Abp.Application.Dtos
+@using Carshowroom.Cars
+@using Carshowroom.Localization
+@using Microsoft.Extensions.Localization
+@using Volo.Abp.AspNetCore.Components.Web
+@inject IStringLocalizer<CarshowroomResource> L
+@inject AbpBlazorMessageLocalizerHelper<CarshowroomResource> LH
+@inherits AbpCrudPageBase<ICarAppService, CarDto, Guid, PagedAndSortedResultRequestDto, CreateUpdateCarDto>
+
+<Card>
+    <CardHeader>
+        <Row Class="justify-content-between">
+            <Column ColumnSize="ColumnSize.IsAuto">
+                <h2>@L["Cars"]</h2>
+            </Column>
+            <Column ColumnSize="ColumnSize.IsAuto">
+                <Button Color="Color.Primary"
+                        Clicked="OpenCreateModalAsync">@L["NewCar"]</Button>
+            </Column>
+        </Row>
+    </CardHeader>
+    <CardBody>
+        <DataGrid TItem="CarDto"
+                  Data="Entities"
+                  ReadData="OnDataGridReadAsync"
+                  CurrentPage="CurrentPage"
+                  TotalItems="TotalCount"
+                  ShowPager="true"
+                  PageSize="PageSize">
+            <DataGridColumns>
+                <DataGridColumn TItem="CarDto"
+                                Field="@nameof(CarDto.BrandsName)"
+                                Caption="@L["BrandName"]"></DataGridColumn>
+                <DataGridColumn TItem="CarDto"
+                                Field="@nameof(CarDto.BrandsBrandId)"
+                                Caption="@L["BrandBrandId"]"></DataGridColumn>
+                <DataGridColumn TItem="CarDto"
+                                Field="@nameof(CarDto.BrandsCountry)"
+                                Caption="@L["BrandCountry"]"></DataGridColumn>
+
+
+                <DataGridColumn TItem="CarDto" Field="@nameof(CarDto.CarId)" Caption="@L["CarId"]"></DataGridColumn>
+                <DataGridColumn TItem="CarDto" Field="@nameof(CarDto.Brand)" Caption="@L["Brand"]">
+                    <DisplayTemplate>
+                        @L[$"{context.Brand}"]
+                    </DisplayTemplate>
+                </DataGridColumn>
+                <DataGridColumn TItem="CarDto" Field="@nameof(CarDto.Model)" Caption="@L["Model"]"></DataGridColumn>
+                <DataGridColumn TItem="CarDto" Field="@nameof(CarDto.Price)" Caption="@L["Price"]"></DataGridColumn>
+                <DataGridColumn TItem="CarDto" Field="@nameof(CarDto.Year)" Caption="@L["Year"]"></DataGridColumn>
+                <DataGridEntityActionsColumn TItem="CarDto" @ref="@EntityActionsColumn">
+                    <DisplayTemplate>
+                        <EntityActions TItem="CarDto" EntityActionsColumn="@EntityActionsColumn">
+                            <EntityAction TItem="CarDto"
+                                          Text="@L["Edit"]"
+                                          Clicked="() => OpenEditModalAsync(context)" />
+                            <EntityAction TItem="CarDto"
+                                          Text="@L["Delete"]"
+                                          Clicked="() => DeleteEntityAsync(context)"
+                                          ConfirmationMessage="()=>GetDeleteConfirmationMessage(context)" />
+                        </EntityActions>
+                    </DisplayTemplate>
+                </DataGridEntityActionsColumn>
+            </DataGridColumns>
+        </DataGrid>
+    </CardBody>
+</Card>
+
+<Modal @ref="@CreateModal">
+    <ModalBackdrop />
+    <ModalContent IsCentered="true">
+        <Form>
+            <ModalHeader>
+                <ModalTitle>@L["NewCar"]</ModalTitle>
+                <CloseButton Clicked="CloseCreateModalAsync"/>
+            </ModalHeader>
+            <ModalBody>
+                <Validations @ref="@CreateValidationsRef" Model="@NewEntity" ValidateOnLoad="false">
+                    <Field>
+                        <FieldLabel>@L["Brand"]</FieldLabel>
+                        <Select TValue="Guid" @bind-SelectedValue="@NewEntity.BrandsId">
+                            @foreach (var brand in brandList)
+                            {
+                                <SelectItem TValue="Guid" Value="@brand.Id">
+                                    @brand.Name
+                                </SelectItem>
+                            }
+                        </Select>
+                    </Field>
+
+                    <Field>
+                        <FieldLabel>@L["CarId"]</FieldLabel>
+                        <NumericEdit TValue="int" TextEdit @bind-Text="@NewEntity.CarId"/>
+                    </Field>
+                    <Field>
+                        <FieldLabel>@L["Brand"]</FieldLabel>
+                        <Select TValue="Brand" @bind-SelectedValue="@NewEntity.Brand">
+                            @foreach (Brand brandValue in Enum.GetValues(typeof(Brand)))
+                            {
+                                <SelectItem TValue="Brand" Value="@brandValue">@L[$"{brandValue}"]</SelectItem>
+                            }
+                        </Select>
+                    </Field>
+
+                    <Field>
+                        <FieldLabel>@L["Year"]</FieldLabel>
+                        <NumericEdit TValue="int" TextEdit @bind-Text="@NewEntity.Year"/>
+                    </Field>
+                    <Field>
+                        <FieldLabel>@L["Model"]</FieldLabel>
+                        <TextEdit @bind-Text="@NewEntity.Model">
+                            <Feedback>
+                                <ValidationError />
+                            </Feedback>
+                        </TextEdit>
+                    </Field>
+                    <Field>
+                        <FieldLabel>@L["Price"]</FieldLabel>
+                        <NumericEdit TValue="double" @bind-Value="NewEntity.Price"/>
+                    </Field>
+                </Validations>
+            </ModalBody>
+            <ModalFooter>
+                <Button Color="Color.Secondary" Clicked="CloseCreateModalAsync">@L["Cancel"]</Button>
+                <Button Color="Color.Primary" Type="@ButtonType.Submit" PreventDefaultOnSubmit="true" Clicked="CreateEntityAsync">@L["Save"]</Button>
+            </ModalFooter>
+        </Form>
+    </ModalContent>
+</Modal>
+
+<Modal @ref="@EditModal">
+    <ModalBackdrop />
+    <ModalContent IsCentered="true">
+        <Form>
+            <ModalHeader>
+                <ModalTitle>@EditingEntity.CarId</ModalTitle>
+                <CloseButton Clicked="CloseEditModalAsync"/>
+            </ModalHeader>
+            <ModalBody>
+                <Validations @ref="@EditValidationsRef" Model="@EditingEntity" ValidateOnLoad="false">
+                    <Field>
+                        <FieldLabel>@L["Brand"]</FieldLabel>
+                        <Select TValue="Guid" @bind-SelectedValue="@EditingEntity.BrandsId">
+                            @foreach (var brand in brandList)
+                            {
+                                <SelectItem TValue="Guid" Value="@brand.Id">
+                                    @brand.Name
+                                </SelectItem>
+                            }
+                        </Select>
+                    </Field>
+
+                    <Field>
+                        <FieldLabel>@L["CarId"]</FieldLabel>
+                        <NumericEdit TValue="int" @bind-Value="@EditingEntity.CarId"/>
+                    </Field>
+                    <Field>
+                        <FieldLabel>@L["Brand"]</FieldLabel>
+                        <Select TValue="Brand" @bind-SelectedValue="@NewEntity.Brand">
+                            @foreach (Brand brandValue in Enum.GetValues(typeof(Brand)))
+                            {
+                                <SelectItem TValue="Brand" Value="@brandValue">@L[$"{brandValue}"]</SelectItem>
+                            }
+                        </Select>
+                    </Field>
+
+                    <Field>
+                        <FieldLabel>@L["Year"]</FieldLabel>
+                        <NumericEdit TValue="int" @bind-Value="@EditingEntity.Year"/>
+                    </Field>
+                    <Field>
+                        <FieldLabel>@L["Model"]</FieldLabel>
+                        <TextEdit @bind-Text="@EditingEntity.Model">
+                            <Feedback>
+                                <ValidationError />
+                            </Feedback>
+                        </TextEdit>
+                    </Field>
+                    <Field>
+                        <FieldLabel>@L["Price"]</FieldLabel>
+                        <NumericEdit TValue="double" @bind-Value="@EditingEntity.Price"/>
+                    </Field>
+                </Validations>
+            </ModalBody>
+            <ModalFooter>
+                <Button Color="Color.Secondary" Clicked="CloseEditModalAsync">@L["Cancel"]</Button>
+                <Button Color="Color.Primary" Type="@ButtonType.Submit" PreventDefaultOnSubmit="true" Clicked="UpdateEntityAsync">@L["Save"]</Button>
+            </ModalFooter>
+        </Form>
+    </ModalContent>
+</Modal>
+@code
+{
+    //ADDED A NEW FIELD
+    IReadOnlyList<BrandLookupDto> brandList = Array.Empty<BrandLookupDto>();
+
+    public Cars() // Constructor
+    {
+        CreatePolicyName = CarshowroomPermissions.Cars.Create;
+        UpdatePolicyName = CarshowroomPermissions.Cars.Edit;
+        DeletePolicyName = CarshowroomPermissions.Cars.Delete;
+    }
+
+    //GET BRANDS ON INITIALIZATION
+    protected override async Task OnInitializedAsync()
+    {
+        await base.OnInitializedAsync();
+        brandList = (await AppService.GetBrandLookupAsync()).Items;
+    }
+
+    protected override async Task OpenCreateModalAsync()
+    {
+        if (!brandList.Any())
+        {
+            throw new UserFriendlyException(message: L["AnBrandIsRequiredForCreatingCar"]);
+        }
+
+        await base.OpenCreateModalAsync();
+        NewEntity.BrandsId = brandList.First().Id;
+    }
+}
